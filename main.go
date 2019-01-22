@@ -29,9 +29,10 @@ func main() {
     checkErr(err)
     defer db.Close()
 
-    //lat := "38.6950877"
-    //lon := "-121.2273314"
-    row := db.QueryRow("SELECT c.name FROM counties c WHERE ST_Covers(c.geog, 'SRID=4326;POINT(-121.2273314 38.6950877)'::geography)")
+    // using $1 syntax throws invalid geometry error
+    // TODO figure out why
+    coords := "-121.2273314 38.6950877"
+    row := db.QueryRow("SELECT c.name FROM counties c WHERE ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)")
     checkErr(err)
     var name string
     err = row.Scan(&name)
