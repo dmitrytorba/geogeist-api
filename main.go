@@ -32,8 +32,13 @@ func main() {
     // using $1 syntax throws invalid geometry error
     // TODO figure out why
     coords := "-121.2273314 38.6950877"
-    row := db.QueryRow("SELECT c.name FROM counties c WHERE ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)")
+    row := db.QueryRow("SELECT c.state FROM states c WHERE ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)")
     checkErr(err)
+    var stateFips string
+    err = row.Scan(&stateFips)
+    checkErr(err)
+    log.Println(stateFips)
+    row = db.QueryRow("SELECT c.name FROM counties c WHERE c.state = $1 AND ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips)
     var name string
     err = row.Scan(&name)
     checkErr(err)
