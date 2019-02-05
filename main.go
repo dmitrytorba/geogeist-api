@@ -7,7 +7,7 @@ import (
     "github.com/gorilla/mux"
  	"database/sql"
     "fmt"
-     _ "github.com/lib/pq"
+    _ "github.com/lib/pq"
 )
  
 const (
@@ -16,7 +16,7 @@ const (
     DB_NAME     = "geogeist"
 )
 
-var db sql.DB
+var db *sql.DB
  
 func checkErr(err error) {
     if err != nil {
@@ -27,9 +27,9 @@ func checkErr(err error) {
 func connectDb() {
 	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
             DB_USER, DB_PASSWORD, DB_NAME)
-    db, err := sql.Open("postgres", dbinfo)
+	var err error
+    db, err = sql.Open("postgres", dbinfo)
     checkErr(err)
-    defer db.Close()
 }
 
 func GetLocation(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +38,7 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
 	lat := params["lat"]
 	log.Println(lon)
 	log.Println(lat)
-	
+
     // using $1 syntax throws invalid geometry error
     // TODO figure out why
     coords := "-121.2273314 38.6950877"
@@ -52,10 +52,12 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
     err = row.Scan(&data)
     checkErr(err)
     log.Println(data)
+    w.Write([]byte(data))
 }
 
 func main() {
 	connectDb()
+    defer db.Close()
     router := mux.NewRouter()
     router.HandleFunc("/coords/{lon}/{lat}", GetLocation).Methods("GET")
     const port = ":8000"
