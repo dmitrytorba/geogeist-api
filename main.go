@@ -41,7 +41,7 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
 
     // using $1 syntax throws invalid geometry error
     // TODO figure out why
-    coords := "-121.2273314 38.6950877"
+    coords := fmt.Sprintf("%s %s", lon, lat)
     row := db.QueryRow("SELECT c.state, c.data FROM states c WHERE ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)")
     var stateFips string
     var stateData string
