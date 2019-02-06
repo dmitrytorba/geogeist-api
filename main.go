@@ -42,17 +42,25 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
     // using $1 syntax throws invalid geometry error
     // TODO figure out why
     coords := "-121.2273314 38.6950877"
-    row := db.QueryRow("SELECT c.state FROM states c WHERE ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)")
+    row := db.QueryRow("SELECT c.state, c.data FROM states c WHERE ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)")
     var stateFips string
-    err := row.Scan(&stateFips)
+    var stateData string
+    err := row.Scan(&stateFips, &stateData)
     checkErr(err)
-    log.Println(stateFips)
     row = db.QueryRow("SELECT c.data FROM counties c WHERE c.state = $1 AND ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips)
-    var data string
-    err = row.Scan(&data)
+    var countyData string
+    err = row.Scan(&countyData)
     checkErr(err)
-    log.Println(data)
-    w.Write([]byte(data))
+    row = db.QueryRow("SELECT c.data FROM places c WHERE c.state = $1 AND ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips)
+    var placeData string
+    err = row.Scan(&placeData)
+    if err == sql.ErrNoRows {
+    	w.Write([]byte(""))
+    	return
+    } 
+    checkErr(err)
+    s := fmt.Sprintf("{\"state\":%s,\"county\":%s,\"place\":%s}", stateData, countyData, placeData)
+    w.Write([]byte(s))
 }
 
 func main() {
