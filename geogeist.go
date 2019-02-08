@@ -69,5 +69,6 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
     } 
     checkErr(err)
     s := fmt.Sprintf("{\"state\":%s,\"county\":%s,\"place\":%s}", stateData, countyData, placeData)
+    w.Header().Set("Content-Type", "application/json")
     w.Write([]byte(s))
 }
