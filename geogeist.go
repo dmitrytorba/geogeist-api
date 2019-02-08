@@ -1,47 +1,56 @@
-package main
+package geogeist
 
 import (
-//	"encoding/json"
-    "log"
-    "net/http"
-    "github.com/gorilla/mux"
- 	"database/sql"
-    "fmt"
-    _ "github.com/lib/pq"
-)
- 
-const (
-    DB_USER     = "geogeist"
-    DB_PASSWORD = "password"
-    DB_NAME     = "geogeist"
+	"database/sql"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	_ "github.com/lib/pq"
 )
 
-var db *sql.DB
- 
+var (
+	db *sql.DB
+
+	connectionName = os.Getenv("db")
+	dbUser         = "geogeist"
+	dbPassword     = os.Getenv("dbpass")
+    sslMode        = os.Getenv("sslmode")
+	dsn            = fmt.Sprintf("user=%s password=%s host=%s sslmode=%s", dbUser, dbPassword, connectionName, sslMode)
+)
+
 func checkErr(err error) {
     if err != nil {
         panic(err)
     }
 }
 
-func connectDb() {
-	dbinfo := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-            DB_USER, DB_PASSWORD, DB_NAME)
+func init() {
 	var err error
-    db, err = sql.Open("postgres", dbinfo)
-    checkErr(err)
+	db, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatalf("Could not open db: %v", err)
+	}
+
+    log.Println("DB Connected")
+	// Only allow 1 connection to the database to avoid overloading it.
+	db.SetMaxIdleConns(1)
+	db.SetMaxOpenConns(1)
+}
+
+func SetDb(db *sql.DB) {
+    db = db
 }
 
 func GetLocation(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	lon := params["lon"]
-	lat := params["lat"]
-	log.Println(lon)
-	log.Println(lat)
+	params := r.URL.Query()
+	lon := params["lon"][0]
+	lat := params["lat"][0]
 
     // using $1 syntax throws invalid geometry error
     // TODO figure out why
     coords := fmt.Sprintf("%s %s", lon, lat)
+	log.Println(coords)
     row := db.QueryRow("SELECT c.state, c.data FROM states c WHERE ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)")
     var stateFips string
     var stateData string
@@ -61,14 +70,4 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
     checkErr(err)
     s := fmt.Sprintf("{\"state\":%s,\"county\":%s,\"place\":%s}", stateData, countyData, placeData)
     w.Write([]byte(s))
-}
-
-func main() {
-	connectDb()
-    defer db.Close()
-    router := mux.NewRouter()
-    router.HandleFunc("/coords/{lon}/{lat}", GetLocation).Methods("GET")
-    const port = ":8000"
-    log.Println("Serving on " + port)
-    log.Fatal(http.ListenAndServe(port, router))
 }
