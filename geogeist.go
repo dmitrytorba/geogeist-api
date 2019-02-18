@@ -47,7 +47,7 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
 	lon := params["lon"][0]
 	lat := params["lat"][0]
 
-    // using $1 syntax throws invalid geometry error
+    // using $1 syntax for coords throws invalid geometry error
     // TODO figure out why
     coords := fmt.Sprintf("%s %s", lon, lat)
 	log.Println(coords)
@@ -56,19 +56,22 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
     var stateData string
     err := row.Scan(&stateFips, &stateData)
     checkErr(err)
-    row = db.QueryRow("SELECT c.data FROM counties c WHERE c.state = $1 AND ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips)
+    row = db.QueryRow("SELECT c.data, c.county FROM counties c WHERE c.state = $1 AND ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips)
     var countyData string
-    err = row.Scan(&countyData)
+    var county string
+    err = row.Scan(&countyData, &county)
+    checkErr(err)
+    row = db.QueryRow("SELECT t.data FROM tracts t WHERE t.state = $1 AND t.county = $2 AND ST_Covers(t.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips, county)
+    var tractData string
+    err = row.Scan(&tractData)
     checkErr(err)
     row = db.QueryRow("SELECT c.data FROM places c WHERE c.state = $1 AND ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips)
     var placeData string
     err = row.Scan(&placeData)
-    if err == sql.ErrNoRows {
-    	w.Write([]byte(""))
-    	return
+    if err != sql.ErrNoRows {
+        checkErr(err)
     } 
-    checkErr(err)
-    s := fmt.Sprintf("{\"state\":%s,\"county\":%s,\"place\":%s}", stateData, countyData, placeData)
+    s := fmt.Sprintf("{\"state\":%s,\"county\":%s,\"place\":%s,\"tract\":%s}", stateData, countyData, placeData, tractData)
     w.Header().Set("Content-Type", "application/json")
     w.Write([]byte(s))
 }
