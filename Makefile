@@ -6,3 +6,4 @@ setup:
 deploy:
 	gcloud functions deploy coords --runtime go111 --trigger-http --entry-point "GetLocation"
 
+
