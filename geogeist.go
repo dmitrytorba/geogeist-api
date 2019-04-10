@@ -51,6 +51,7 @@ func checkErr(err error) {
 }
 
 func init() {
+    fmt.Printf("Connecting to the db...\n")
     var agentClient agent.Agent
     // Establish a connection to the local ssh-agent
     if conn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
