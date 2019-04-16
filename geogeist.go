@@ -12,11 +12,9 @@ import (
 var (
 	db *sql.DB
 
-	connectionName = os.Getenv("db")
-	dbUser         = "geogeist"
-	dbPassword     = os.Getenv("dbpass")
-    sslMode        = os.Getenv("sslmode")
-	dsn            = fmt.Sprintf("user=%s password=%s host=%s sslmode=%s", dbUser, dbPassword, connectionName, sslMode)
+	host = os.Getenv("db")
+	pass = os.Getenv("dbpass")
+	dsn = fmt.Sprintf("database=geogeist user=geogeist password=%s host=%s", pass, host)
 )
 
 func checkErr(err error) {
