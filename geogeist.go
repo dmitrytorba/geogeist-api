@@ -66,9 +66,11 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
     row = db.QueryRow("SELECT c.data FROM places c WHERE c.state = $1 AND ST_Covers(c.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips)
     var placeData string
     err = row.Scan(&placeData)
-    if err != sql.ErrNoRows {
+    if err == sql.ErrNoRows {
+        placeData = "\"\""
+    } else {
         checkErr(err)
-    } 
+    }
     s := fmt.Sprintf("{\"state\":%s,\"county\":%s,\"place\":%s,\"tract\":%s}", stateData, countyData, placeData, tractData)
     w.Header().Set("Content-Type", "application/json")
     w.Write([]byte(s))
