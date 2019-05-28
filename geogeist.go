@@ -59,7 +59,7 @@ func GetLocation(w http.ResponseWriter, r *http.Request) {
     var county string
     err = row.Scan(&countyData, &county)
     checkErr(err)
-    row = db.QueryRow("SELECT t.data FROM tracts t WHERE t.state = $1 AND t.county = $2 AND ST_Covers(t.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips, county)
+    row = db.QueryRow("SELECT t.data FROM tracts t WHERE t.state = $1 AND ST_Covers(t.geog, 'SRID=4326;POINT(" + coords + ")'::geography)", stateFips)
     var tractData string
     err = row.Scan(&tractData)
     checkErr(err)
